@@ -105,7 +105,7 @@ Import and configure the module in Home Manager:
 The module installs the extension at:
 
 ```text
-~/.pi/agent/extensions/typesafe-router.ts
+~/.pi/agent/extensions/typesafe-router/index.ts
 ```
 
 It deliberately does not provision `TYPESAFE_API_KEY`. Use agenix, sops, a password manager, or another runtime secret mechanism. For example, with an agenix file already materialized at `~/.config/typesafe/api-key`:

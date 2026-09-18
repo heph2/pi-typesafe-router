@@ -30,7 +30,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.file.".pi/agent/extensions/typesafe-router.ts".source = ../src/index.ts;
+    home.file.".pi/agent/extensions/typesafe-router/index.ts".source = ../src/index.ts;
+    home.file.".pi/agent/extensions/typesafe-router/routing.ts".source = ../src/routing.ts;
 
     home.sessionVariables = {
       TYPESAFE_ROUTING = cfg.mode;
