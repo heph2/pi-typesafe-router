@@ -45,7 +45,14 @@ Set the key in the shell that starts Pi. Do not commit it or put it in a Nix exp
 ```bash
 export TYPESAFE_API_KEY="$(cat ~/.config/typesafe/api-key)"
 export TYPESAFE_ROUTING=shadow
+
+# Choose a target for every route (provider/model)
+export TYPESAFE_ROUTE_MODELS='{"fast":"anthropic/claude-haiku","balanced":"openai/gpt-4.1","deep":"openai/o3"}'
 ```
+
+The map can also be configured one route at a time with `TYPESAFE_ROUTE_FAST`,
+`TYPESAFE_ROUTE_BALANCED`, and `TYPESAFE_ROUTE_DEEP`; those variables override
+matching entries in `TYPESAFE_ROUTE_MODELS`.
 
 Start Pi normally:
 
@@ -95,12 +102,19 @@ Import and configure the module in Home Manager:
   programs.pi-typesafe-router = {
     enable = true;
     mode = "shadow";
-    fastModel = "opencode/gpt-5-nano";
-    balancedModel = "openai-codex/gpt-5.6-luna";
-    deepModel = "opencode/gpt-6-astra";
+    models = {
+      fast = "opencode/gpt-5-nano";
+      balanced = "openai-codex/gpt-5.6-luna";
+      deep = "opencode/gpt-6-astra";
+    };
   };
 }
 ```
+
+`models.fast`, `models.balanced`, and `models.deep` accept `provider/model`
+targets. The older `fastModel`, `balancedModel`, and `deepModel` options remain
+available as per-route compatibility aliases; if both forms are set, the legacy
+alias wins for that route.
 
 The module installs the extension at:
 
@@ -132,9 +146,10 @@ All settings are environment variables. Model values use `provider/model`.
 |---|---|---|
 | `TYPESAFE_API_KEY` | unset | Required API key |
 | `TYPESAFE_ROUTING` | `shadow` | `off`, `shadow`, or `live` |
-| `TYPESAFE_ROUTE_FAST` | `opencode/gpt-5-nano` | Fast target |
-| `TYPESAFE_ROUTE_BALANCED` | `openai-codex/gpt-5.6-luna` | Balanced target |
-| `TYPESAFE_ROUTE_DEEP` | `opencode/gpt-6-astra` | Deep target |
+| `TYPESAFE_ROUTE_MODELS` | built-in route map | JSON map of `fast`, `balanced`, and `deep` targets |
+| `TYPESAFE_ROUTE_FAST` | `opencode/gpt-5-nano` | Fast target; overrides the map |
+| `TYPESAFE_ROUTE_BALANCED` | `openai-codex/gpt-5.6-luna` | Balanced target; overrides the map |
+| `TYPESAFE_ROUTE_DEEP` | `opencode/gpt-6-astra` | Deep target; overrides the map |
 | `TYPESAFE_CONFIDENCE_THRESHOLD` | `0.75` | Below this, use balanced |
 | `TYPESAFE_RISK_THRESHOLD` | `0.8` | At or above this, use deep |
 | `TYPESAFE_ROUTING_TIMEOUT_MS` | `2500` | TypeSafe request timeout |

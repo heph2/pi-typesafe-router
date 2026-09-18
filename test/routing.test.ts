@@ -20,3 +20,34 @@ test("keeps the configured default route targets", () => {
 	assert.deepEqual(routeTarget("balanced"), ROUTES.balanced);
 	assert.deepEqual(routeTarget("deep"), ROUTES.deep);
 });
+
+test("reads a route model map for non-Nix configuration", () => {
+	const env = {
+		TYPESAFE_ROUTE_MODELS: JSON.stringify({
+			fast: "anthropic/claude-haiku",
+			balanced: "openai/gpt-4.1",
+			deep: "openai/o3",
+		}),
+	};
+
+	assert.deepEqual(routeTarget("fast", env), { provider: "anthropic", model: "claude-haiku" });
+	assert.deepEqual(routeTarget("balanced", env), { provider: "openai", model: "gpt-4.1" });
+	assert.deepEqual(routeTarget("deep", env), { provider: "openai", model: "o3" });
+});
+
+test("prefers a route-specific environment variable over the route model map", () => {
+	const env = {
+		TYPESAFE_ROUTE_MODELS: JSON.stringify({ fast: "anthropic/claude-haiku" }),
+		TYPESAFE_ROUTE_FAST: "openai/gpt-4.1-mini",
+	};
+
+	assert.deepEqual(routeTarget("fast", env), { provider: "openai", model: "gpt-4.1-mini" });
+});
+
+test("ignores malformed route model configuration", () => {
+	assert.deepEqual(routeTarget("fast", { TYPESAFE_ROUTE_MODELS: "not-json" }), ROUTES.fast);
+	assert.deepEqual(
+		routeTarget("fast", { TYPESAFE_ROUTE_MODELS: JSON.stringify({ fast: "missing-provider" }) }),
+		ROUTES.fast,
+	);
+});
