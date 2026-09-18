@@ -1,0 +1,35 @@
+{
+  "name": "pi-typesafe-router",
+  "version": "0.1.0",
+  "description": "Route Pi agent turns to an appropriate model using TypeSafe judgments.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "files": [
+    "src",
+    "nix",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE",
+    "flake.nix"
+  ],
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "typesafe",
+    "model-routing"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
