@@ -11,6 +11,7 @@
     "nix",
     "AGENTS.md",
     "README.md",
+    "pi-typesafe-router-logo.png",
     "LICENSE",
     "flake.nix"
   ],

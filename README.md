@@ -1,5 +1,9 @@
 # pi-typesafe-router
 
+<p align="center">
+  <img src="pi-typesafe-router-logo.png" alt="pi-typesafe-router logo" width="240">
+</p>
+
 A [Pi](https://pi.dev) extension that uses [TypeSafe](https://typesafe.ai)'s Jev model to choose a model route before each agent turn.
 
 ```text
