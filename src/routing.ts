@@ -1,4 +1,5 @@
 export type Route = "fast" | "balanced" | "deep";
+export type Phase = "design" | "implementation" | "review" | "debugging";
 
 export type ModelTarget = {
 	provider: string;
@@ -10,6 +11,71 @@ export const ROUTES: Record<Route, ModelTarget> = {
 	balanced: { provider: "openai-codex", model: "gpt-5.6-luna" },
 	deep: { provider: "opencode", model: "gpt-6-astra" },
 };
+
+const PHASES: readonly Phase[] = ["design", "implementation", "review", "debugging"];
+
+export function isPhase(value: unknown): value is Phase {
+	return typeof value === "string" && PHASES.includes(value as Phase);
+}
+
+function parsePhase(value: unknown): Phase | undefined {
+	return isPhase(value) ? value : undefined;
+}
+
+export function chooseEffectivePhase(
+	requestedPhase: unknown,
+	confidence: number,
+	currentPhase?: Phase,
+	transitionThreshold = 0.8,
+): Phase | undefined {
+	const phase = parsePhase(requestedPhase);
+	if (!phase || (currentPhase && phase !== currentPhase && confidence < transitionThreshold)) return currentPhase;
+	return phase;
+}
+
+export function routeForPhase(phase: Phase): Route {
+	return phase === "design" || phase === "review" ? "deep" : "balanced";
+}
+
+export type PhaseRouteDecision = {
+	phase: Phase | undefined;
+	route: Route;
+	phaseTransition: boolean;
+};
+
+export function shouldApplyModelChange(
+	currentModel: string | null,
+	targetModel: string,
+	phaseTransition: boolean,
+	route: Route,
+	highRisk: number,
+	riskThreshold = 0.8,
+	initialDecision = false,
+): boolean {
+	if (currentModel === targetModel) return false;
+	return initialDecision || phaseTransition || (route === "deep" && highRisk >= riskThreshold);
+}
+
+export function choosePhaseAwareRoute(
+	requestedPhase: unknown,
+	phaseConfidence: number,
+	currentPhase: Phase | undefined,
+	requestedRoute: unknown,
+	routeConfidence: number,
+	highRisk: number,
+	phaseTransitionThreshold = 0.8,
+	confidenceThreshold = 0.75,
+	riskThreshold = 0.8,
+): PhaseRouteDecision {
+	const phase = chooseEffectivePhase(requestedPhase, phaseConfidence, currentPhase, phaseTransitionThreshold);
+	const phaseTransition = phase !== undefined && phase !== currentPhase;
+	const route = phase
+		? highRisk >= riskThreshold
+			? "deep"
+			: routeForPhase(phase)
+		: chooseEffectiveRoute(requestedRoute, routeConfidence, highRisk, confidenceThreshold, riskThreshold);
+	return { phase, route, phaseTransition };
+}
 
 export function chooseEffectiveRoute(
 	requestedRoute: unknown,

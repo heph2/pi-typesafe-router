@@ -28,6 +28,13 @@ The fast route uses a paid OpenCode Zen model. OpenCode free-tier models are res
 
 TypeSafe failures, unavailable models, and logging failures never fail the agent turn. Low-confidence results fall back to `balanced`; high-risk work goes to `deep`.
 
+Routing is phase-aware: design and review use the `deep` route, while implementation
+and debugging use `balanced`. The phase is kept in the session and the active model
+changes only after a confident phase transition, so implementation turns can reuse
+their own prompt cache without pinning one model for the whole chat. A high-risk
+classification can still escalate to `deep`; that escalation stays in effect until
+the next phase transition.
+
 ## Plain Pi installation
 
 Requirements: Pi with extension support, Node.js 22.6+ for development tests, and a TypeSafe API key.
@@ -154,7 +161,8 @@ All settings are environment variables. Model values use `provider/model`.
 | `TYPESAFE_ROUTE_FAST` | `opencode/gpt-5-nano` | Fast target; overrides the map |
 | `TYPESAFE_ROUTE_BALANCED` | `openai-codex/gpt-5.6-luna` | Balanced target; overrides the map |
 | `TYPESAFE_ROUTE_DEEP` | `opencode/gpt-6-astra` | Deep target; overrides the map |
-| `TYPESAFE_CONFIDENCE_THRESHOLD` | `0.75` | Below this, use balanced |
+| `TYPESAFE_CONFIDENCE_THRESHOLD` | `0.75` | Below this, use balanced when no phase is established |
+| `TYPESAFE_PHASE_TRANSITION_THRESHOLD` | `0.8` | Confidence required to change coding phase |
 | `TYPESAFE_RISK_THRESHOLD` | `0.8` | At or above this, use deep |
 | `TYPESAFE_ROUTING_TIMEOUT_MS` | `2500` | TypeSafe request timeout |
 | `TYPESAFE_MAX_PROMPT_CHARS` | `12000` | Prompt sent to TypeSafe |
@@ -164,6 +172,36 @@ All settings are environment variables. Model values use `provider/model`.
 | `TYPESAFE_LOG_PROMPTS` | unset | Set to `1` to log full prompts; otherwise only a hash is logged |
 
 The prompt, truncated to `TYPESAFE_MAX_PROMPT_CHARS`, is sent to TypeSafe for classification. Treat this as an external service boundary and avoid sending sensitive material when that is not acceptable.
+
+## Measuring routing cost
+
+The decision log records the phase, transition, target model, and TypeSafe usage.
+After each model response, it also records a `model_usage` entry with provider-reported
+input, output, cache-read, cache-write, and cost values:
+
+```bash
+jq 'select(.log_type == "model_usage") |
+  {timestamp, phase, model, model_switched, input_tokens, cache_read_tokens, cost}' \
+  ~/.pi/agent/state/typesafe-router.jsonl
+```
+
+Aggregate actual provider cost and cache behavior with:
+
+```bash
+jq -s 'map(select(.log_type == "model_usage")) |
+  {turns: length,
+   switches: (map(select(.model_switched)) | length),
+   cost: (map(.cost.total // 0) | add // 0),
+   input_tokens: (map(.input_tokens) | add // 0),
+   cache_read_tokens: (map(.cache_read_tokens) | add // 0)}' \
+  ~/.pi/agent/state/typesafe-router.jsonl
+```
+
+Compare representative tasks with routing in `shadow` mode and `live` mode using
+separate `TYPESAFE_LOG_PATH` files. The important quantities are the cheaper model's
+steady-state cost versus the one-time cache refill when a phase transition occurs.
+The `cost` field is the provider-reported Pi model cost; TypeSafe classification
+usage is logged separately and should be added if that API is billed.
 
 ## Inspecting decisions
 
